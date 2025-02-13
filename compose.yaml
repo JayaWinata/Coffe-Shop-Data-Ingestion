@@ -1,16 +1,14 @@
 services:
-  clickhouse-server:
-    container_name: clickhouse_db
+  clickhouse_db:
     image: clickhouse/clickhouse-server:latest
     ports:
       - "9000:9000"
       - "8123:8123"
     volumes:
-      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse-data:/var/lib/clickhouse
       - ./dataset:/var/lib/clickhouse/user_files
-    environment:
-      CLICKHOUSE_USER: admin
-      CLICKHOUSE_PASSWORD: password
+    env_file:
+      - ./config/clickhouse_db.env
     ulimits:
       memlock:
         soft: -1
@@ -18,6 +16,32 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./config/metabase.env
+    depends_on:
+      - metabase_db
+      - clickhouse_db
+    volumes:
+      - metabase-data:/metabase-data
+
+  metabase_db:
+    image: postgres:latest
+    container_name: metabase_db
+    restart: always
+    env_file:
+      - ./config/metabase_db.env
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
 
 volumes:
-  clickhouse_data:
+  metabase-data:
+  postgres-data:
+  clickhouse-data:
