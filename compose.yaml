@@ -1,5 +1,6 @@
 services:
   clickhouse-server:
+    container_name: clickhouse_db
     image: clickhouse/clickhouse-server:latest
     ports:
       - "9000:9000"
