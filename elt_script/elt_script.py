@@ -1,11 +1,11 @@
-import os
-import argparse
-import requests
-import zipfile
-import gzip
-import shutil
 import pandas as pd
+import requests
+import argparse
+import zipfile
+import shutil
 import stat
+import gzip
+import os
 
 
 def unzip(args):
