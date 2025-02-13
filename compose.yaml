@@ -1,12 +1,15 @@
 services:
   clickhouse_db:
+    container_name: clickhouse_db
     image: clickhouse/clickhouse-server:latest
     ports:
       - "9000:9000"
       - "8123:8123"
+      - "9009:9009"
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./dataset:/var/lib/clickhouse/user_files
+      # - ./clickhouse-server:/etc/clickhouse-server
     env_file:
       - ./config/clickhouse_db.env
     ulimits:
@@ -16,6 +19,8 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    networks:
+      - coffee_network
   metabase:
     image: metabase/metabase:latest
     container_name: metabase
@@ -29,7 +34,9 @@ services:
       - clickhouse_db
     volumes:
       - metabase-data:/metabase-data
-
+      - ~/metabase/plugins:/plugins
+    networks:
+      - coffee_network
   metabase_db:
     image: postgres:latest
     container_name: metabase_db
@@ -40,8 +47,14 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - coffee_network
 
 volumes:
   metabase-data:
   postgres-data:
   clickhouse-data:
+
+networks:
+  coffee_network:
+    driver: bridge
