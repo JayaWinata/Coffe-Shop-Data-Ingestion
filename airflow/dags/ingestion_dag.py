@@ -1,9 +1,10 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from datetime import datetime
-from elt_script.download_and_unzip import download_and_unzip
-from elt_script.remove_csv import remove_csv
-from elt_script.convert_to_csv import convert_to_csv
+from ingestion_script.download_and_unzip import download_and_unzip
+from ingestion_script.remove_csv import remove_csv
+from ingestion_script.convert_to_csv import convert_to_csv
 
 default_args = {
     'owner': 'airflow',
@@ -39,4 +40,20 @@ with DAG(
         python_callable=convert_to_csv
     )
 
-    task_remove_csv >> task_download_unzip >> task_convert_csv
+    task_load_to_clickhouse = BashOperator(
+        task_id='load_csv_to_clickhouse',
+        bash_command="""
+        docker exec -it clickhouse_db clickhouse-client -u admin --password password -q "
+        DROP DATABASE coffee_shop;
+        CREATE DATABASE IF NOT EXISTS coffee_shop;
+        CREATE TABLE IF NOT EXISTS coffee_shop.sales ENGINE = MergeTree()
+        PRIMARY KEY (\`transaction_date\`, \`store_id\`, \`product_id\`)
+        ORDER BY (\`transaction_date\`, \`store_id\`, \`product_id\`)
+        SETTINGS allow_nullable_key = 1
+        AS SELECT * FROM file('coffee-sales.csv', 'CSVWithNames');
+        "
+        """,
+        dag=dag
+    )
+
+    task_remove_csv >> task_download_unzip >> task_convert_csv >> task_load_to_clickhouse

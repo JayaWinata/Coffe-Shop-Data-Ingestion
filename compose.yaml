@@ -50,6 +50,84 @@ services:
     networks:
       - coffee_network
 
+  postgres: # database for airflow to store metadata etc.
+    image: postgres:latest
+    networks:
+      - coffee_network
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+  init-airflow: # to initialize user / admin and database for airflow
+    image: apache/airflow:latest
+    depends_on:
+      - postgres
+    networks:
+      - coffee_network
+    environment:
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    command: >
+      bash -c "airflow db migrate && airflow connections create-default-connections && airflow users create --username airflow --password password --firstname John --lastname Doe --role Admin --email admin@example.com"
+
+  webserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: root
+    depends_on:
+      - postgres
+    networks:
+      - coffee_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./ingestion_script:/opt/ingestion_script
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=local
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_USERNAME=airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_PASSWORD=password
+      - AIRFLOW__WWW__USER_USERNAME=airflow
+      - AIRFLOW__WWW__USER_PASSWORD=password
+      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+    env_file:
+      - ./config/airflow.env
+    ports:
+      - "8080:8080"
+    command: webserver
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: root
+    depends_on:
+      - postgres
+    networks:
+      - coffee_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./ingestion_script:/opt/ingestion_script
+      - ./custom_postgres:/opt/dbt
+      - ~/.dbt:/root/.dbt
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - LOAD_EX=n
+      - EXECUTOR=local
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_USERNAME=airflow
+      - AIRFLOW__WEBSERVER__DEFAULT__USER_PASSWORD=password
+      - AIRFLOW__WWW__USER_USERNAME=airflow
+      - AIRFLOW__WWW__USER_PASSWORD=password
+      - AIRFLOW__WEBSERVER__SECRET_KEY=secret
+    env_file:
+      - ./config/airflow.env
+    command: scheduler
+
 volumes:
   metabase-data:
   postgres-data:

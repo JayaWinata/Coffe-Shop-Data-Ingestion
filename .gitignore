@@ -2,3 +2,4 @@ temp.*
 temp
 config
 clickhouse-server/
+airflow/airflow.cfg
