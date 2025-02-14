@@ -58,6 +58,8 @@ services:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
+    depends_on:
+      - metabase
   init-airflow: # to initialize user / admin and database for airflow
     image: apache/airflow:latest
     depends_on:

@@ -2,6 +2,9 @@ from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.operators.bash import BashOperator
 from datetime import datetime
+import sys
+
+sys.path.append('/opt')
 from ingestion_script.download_and_unzip import download_and_unzip
 from ingestion_script.remove_csv import remove_csv
 from ingestion_script.convert_to_csv import convert_to_csv
@@ -16,10 +19,12 @@ URL = "https://www.kaggle.com/api/v1/datasets/download/ahmedabbas757/coffee-sale
 FILENAME = URL.split('/')[-1]
 CSV_FILE_PATH = f"/tmp/dataset/{FILENAME}.csv"
 
+
 with DAG(
-    'unzip_and_convert',
+    dag_id='data_ingestion',
     default_args=default_args,
-    schedule_interval='@daily',
+    schedule_interval="0 0 * * 0",
+    start_date=datetime(2024,2,13),
     catchup=False
 ) as dag:
 
@@ -43,7 +48,7 @@ with DAG(
     task_load_to_clickhouse = BashOperator(
         task_id='load_csv_to_clickhouse',
         bash_command="""
-        docker exec -it clickhouse_db clickhouse-client -u admin --password password -q "
+        docker exec clickhouse_db clickhouse-client -u admin --password password -q "
         DROP DATABASE coffee_shop;
         CREATE DATABASE IF NOT EXISTS coffee_shop;
         CREATE TABLE IF NOT EXISTS coffee_shop.sales ENGINE = MergeTree()

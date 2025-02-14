@@ -3,3 +3,4 @@ temp
 config
 clickhouse-server/
 airflow/airflow.cfg
+airflow/dags/__pycache__
