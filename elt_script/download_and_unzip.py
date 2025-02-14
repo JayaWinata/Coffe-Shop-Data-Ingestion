@@ -27,4 +27,4 @@ def download_and_unzip(url, output_dir="/tmp/temp/"):
         raise Exception(f'File Unzipping Error: {e}')
 
     print(f"File downloaded and extracted to: {os.path.abspath(output_dir)}")
-    return output_dir  # Returning extracted directory path
+    return output_dir
