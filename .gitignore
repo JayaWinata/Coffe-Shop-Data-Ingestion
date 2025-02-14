@@ -4,3 +4,4 @@ config
 clickhouse-server/
 airflow/airflow.cfg
 airflow/dags/__pycache__
+ingestion_script/__pycache__
