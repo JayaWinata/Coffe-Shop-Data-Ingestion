@@ -16,9 +16,12 @@ default_args = {
 }
 
 URL = "https://www.kaggle.com/api/v1/datasets/download/ahmedabbas757/coffee-sales"
-FILENAME = URL.split('/')[-1]
-CSV_FILE_PATH = f"/tmp/dataset/{FILENAME}.csv"
+FILENAME = URL.split('/')[-1] + ".csv"
+CSV_FILE_PATH = f"/tmp/dataset/{FILENAME}"
 
+CLICKHOUSE_IMAGE_NAME = 'clickhouse_db'
+DB_NAME = 'coffee_shop'
+TABLE_NAME = 'sales'
 
 with DAG(
     dag_id='data_ingestion',
@@ -47,15 +50,15 @@ with DAG(
 
     task_load_to_clickhouse = BashOperator(
         task_id='load_csv_to_clickhouse',
-        bash_command="""
-        docker exec clickhouse_db clickhouse-client -u admin --password password -q "
-        DROP DATABASE coffee_shop;
-        CREATE DATABASE IF NOT EXISTS coffee_shop;
-        CREATE TABLE IF NOT EXISTS coffee_shop.sales ENGINE = MergeTree()
+        bash_command=f"""
+        docker exec {CLICKHOUSE_IMAGE_NAME} clickhouse-client -u admin --password password -q "
+        DROP DATABASE IF EXISTS {DB_NAME};
+        CREATE DATABASE IF NOT EXISTS {DB_NAME};
+        CREATE TABLE IF NOT EXISTS {DB_NAME}.{TABLE_NAME} ENGINE = MergeTree()
         PRIMARY KEY (\`transaction_date\`, \`store_id\`, \`product_id\`)
         ORDER BY (\`transaction_date\`, \`store_id\`, \`product_id\`)
         SETTINGS allow_nullable_key = 1
-        AS SELECT * FROM file('coffee-sales.csv', 'CSVWithNames');
+        AS SELECT * FROM file('{FILENAME}', 'CSVWithNames');
         "
         """,
         dag=dag
