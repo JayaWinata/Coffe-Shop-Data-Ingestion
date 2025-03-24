@@ -1,6 +1,6 @@
 services:
   clickhouse_db:
-    container_name: clickhouse_db
+    container_name: clickhouse_db_1
     image: clickhouse/clickhouse-server:latest
     ports:
       - "9000:9000"
@@ -23,7 +23,7 @@ services:
       - coffee_network
   metabase:
     image: metabase/metabase:latest
-    container_name: metabase
+    container_name: metabase_1
     restart: always
     ports:
       - "3000:3000"
@@ -39,7 +39,7 @@ services:
       - coffee_network
   metabase_db:
     image: postgres:latest
-    container_name: metabase_db
+    container_name: metabase_db_1
     restart: always
     env_file:
       - ./config/metabase_db.env
